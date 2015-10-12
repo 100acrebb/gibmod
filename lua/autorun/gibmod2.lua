@@ -893,13 +893,15 @@ function GibMod_EntityTakeDamage( ent, dmginfo, force )
 end
 hook.Add( "EntityTakeDamage", "Gib_EntDamage", GibMod_EntityTakeDamage )
 
+local gamemodeDoPlayerDeathFunc = nil
 function GibMod_DoPlayerDeath( ply, attacker, dmginfo )
+	-- necessary to override vanilla ragdolls and weapon drop
+	
 	if gibmodEnabled:GetBool() then
 		if ( string.find( gmod.GetGamemode().FolderName, 'terror' ) ) then
-			gmod.GetGamemode():DoPlayerDeath( ply, attacker, dmginfo )
+			gamemodeDoPlayerDeathFunc( gmod.GetGamemode(), ply, attacker, dmginfo )
 	
 			GibMod_Dismember( ply.server_ragdoll, dmginfo:GetDamagePosition(), dmginfo:GetDamageForce(), dmginfo:IsExplosionDamage() )
-			
 		else
 			ply:AddDeaths( 1 )
 			
@@ -915,8 +917,13 @@ function GibMod_DoPlayerDeath( ply, attacker, dmginfo )
 		end
 	end
 end
-hook.Add( "DoPlayerDeath", "Gib_PlayerDeath", GibMod_DoPlayerDeath)
-hook.Add( "Initialize", "OverrideGamemodeDoPlayerDeath", function() function GAMEMODE:DoPlayerDeath() end end)
+hook.Add( "DoPlayerDeath", "Gib_PlayerDeath", GibMod_DoPlayerDeath )
+
+local function overrideGamemodeDoPlayerDeath()
+	gamemodeDoPlayerDeathFunc = gmod.GetGamemode().DoPlayerDeath
+	function GAMEMODE:DoPlayerDeath() end
+end
+hook.Add( "Initialize", "Gib_DoPlayerDeathOverride", overrideGamemodeDoPlayerDeath )
 
 function SetGibModDamage( ent, dmginfo )
 	ent.GibMod_Damage = DamageInfo()
