@@ -1,3 +1,6 @@
+-- attempt to automatically turn "keep corpses" off
+RunConsoleCommand( "ai_serverragdolls", "0" )
+
 if CLIENT then
 	local gibmodEnabled = CreateConVar( "gibmod_enabled", "1", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 	local effectTime = CreateConVar( "gibmod_effecttime", "60", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
