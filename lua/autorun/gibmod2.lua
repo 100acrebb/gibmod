@@ -1,11 +1,15 @@
 -- attempt to automatically turn "keep corpses" off
 RunConsoleCommand( "ai_serverragdolls", "0" )
 
+if SERVER then
+	resource.AddSingleFile("materials/gibmod/bloodstream.vmt")
+end
+
 if CLIENT then
 	local gibmodEnabled = CreateConVar( "gibmod_enabled", "1", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 	local effectTime = CreateConVar( "gibmod_effecttime", "60", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 	local sprayTime = CreateConVar( "gibmod_spraytime", "15", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
-	local deathCamEnabled = CreateConVar( "gibmod_deathcam", "1", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
+	local deathCamEnabled = CreateConVar( "gibmod_deathcam", "0", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 	
 	function GibMod_CalcView( ply, origin, angle, fov )
 		if ply:Alive() then return end
@@ -19,6 +23,7 @@ if CLIENT then
 		
 		if IsValid(ragdoll) then
 			local eyes = ragdoll:GetAttachment( ragdoll:LookupAttachment("eyes") )
+			if eyes==nil then return end -- MTZ
 			angle = eyes.Ang
 			pos = eyes.Pos
 			fov = 120
@@ -130,7 +135,7 @@ local function showNotice( ply )
 	noticeShown = true
 	PrintMessage( HUD_PRINTTALK, "Welcome to GibMod. If you are experiencing performance issues, please try enabling performance mode with 'gibmod_perfmode 1' in console. Have fun!" )
 end
-hook.Add( "PlayerInitialSpawn", "gibmodShowNotice", showNotice )
+--hook.Add( "PlayerInitialSpawn", "gibmodShowNotice", showNotice )
 
 local GibMod_Explode
 local GibMod_Dismember
@@ -286,12 +291,13 @@ end
 concommand.Add( "gibmod_getvalue", ccGetValue )
 
 
-local deathCamEnabled = CreateConVar( "gibmod_deathcam", "1", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
+local deathCamEnabled = CreateConVar( "gibmod_deathcam", "0", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 
 local gibmodEnabled = CreateConVar( "gibmod_enabled", "1", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
-local explosionsEnabled = CreateConVar( "gibmod_explosions", "1", { FCVAR_ARCHIVE, FCVAR_DEMO } )
+local explosionsEnabled = CreateConVar( "gibmod_explosions", "0", { FCVAR_ARCHIVE, FCVAR_DEMO } )
 local dismembermentEnabled = CreateConVar( "gibmod_dismemberment", "1", { FCVAR_ARCHIVE, FCVAR_DEMO } )
 local deathSoundsEnabled = CreateConVar( "gibmod_deathsounds", "1", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
+local dropWeaponEnabled = CreateConVar( "gibmod_dropweapon", "0", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 
 local sprayTime = CreateConVar( "gibmod_spraytime", "15", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 local effectTime = CreateConVar( "gibmod_effecttime", "90", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
@@ -302,7 +308,7 @@ local onlyDeadRagdolls = CreateConVar( "gibmod_onlydeadragdolls", "0", { FCVAR_A
 
 local onlyHS = CreateConVar( "gibmod_onlyhs", "0", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 
-local perfMode = CreateConVar( "gibmod_perfmode", "0", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
+local perfMode = CreateConVar( "gibmod_perfmode", "1", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 local perfFactor = CreateConVar( "gibmod_perffactor", "0.4", { FCVAR_ARCHIVE, FCVAR_DEMO, FCVAR_REPLICATED } )
 
 
@@ -790,6 +796,8 @@ function GibMod_SpawnHeadcrab( ent, damageForce, damagePos )
 		ragdoll:SetModel( "models/headcrab.mdl" )
 	elseif string.find( model, "zombie/poison" ) then
 		ragdoll:SetModel( "models/headcrabblack.mdl" )
+	else
+		return --mtz.  If we can't identify the zombie, don't spawn a headcrab.
 	end
 	
 	ragdoll:Spawn()
@@ -825,6 +833,9 @@ function GibMod_SpawnHeadcrab( ent, damageForce, damagePos )
 end
 
 function GibMod_DropWeapon( ent, damageForce )
+
+	if not dropWeaponEnabled:GetBool() then return end
+	
 	-- drop currently held weapon
 	if ent:GetActiveWeapon() and ent:GetActiveWeapon():IsValid() then
 		local droppedWeapon = ents.Create( ent:GetActiveWeapon():GetClass() )
